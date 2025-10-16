@@ -113,6 +113,13 @@ export type Database = {
             referencedRelation: "auctions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bids_bidder_id_fkey"
+            columns: ["bidder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {

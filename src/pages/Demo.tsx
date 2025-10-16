@@ -6,12 +6,10 @@ import productCoaching from "@/assets/product-coaching.png";
 import productCourse from "@/assets/product-course.png";
 import productWorkshop from "@/assets/product-workshop.png";
 
-// Note: These auction IDs should be replaced with actual UUIDs from your database
-// For now, the widget will show "Auction not found" until you create real auctions
+// Using real auction IDs from your database
 const demoAuctionIds = [
-  "00000000-0000-0000-0000-000000000001",
-  "00000000-0000-0000-0000-000000000002", 
-  "00000000-0000-0000-0000-000000000003"
+  "9a354d99-619b-4903-bef9-8c53557ed8fe",
+  "976e6bc5-d1ee-43d4-9fc4-a60529253f6a"
 ];
 
 export default function Demo() {
