@@ -6,60 +6,11 @@ import productCoaching from "@/assets/product-coaching.png";
 import productCourse from "@/assets/product-course.png";
 import productWorkshop from "@/assets/product-workshop.png";
 
-const demoAuctions = [
-  {
-    id: "demo-1",
-    title: "1-on-1 Strategy Session with Sarah Chen",
-    description: "Limited availability - 3 spots remaining",
-    image: productCoaching,
-    startingBid: 150,
-    currentBid: 287,
-    timeRemaining: 15780,
-    bids: [
-      { bidder: "Alex M.", amount: 287, timestamp: new Date(Date.now() - 120000) },
-      { bidder: "Jordan K.", amount: 275, timestamp: new Date(Date.now() - 300000) },
-      { bidder: "Sam T.", amount: 260, timestamp: new Date(Date.now() - 600000) },
-      { bidder: "Taylor R.", amount: 245, timestamp: new Date(Date.now() - 900000) },
-    ],
-    viewers: 47,
-    aiSuggestedPrice: 315,
-    surgeMultiplier: 1.4,
-  },
-  {
-    id: "demo-2",
-    title: "Limited Edition Course: Growth Hacking 2025",
-    description: "Exclusive beta access",
-    image: productCourse,
-    startingBid: 99,
-    currentBid: 156,
-    timeRemaining: 6420,
-    bids: [
-      { bidder: "Morgan B.", amount: 156, timestamp: new Date(Date.now() - 180000) },
-      { bidder: "Casey L.", amount: 145, timestamp: new Date(Date.now() - 420000) },
-      { bidder: "Jamie P.", amount: 132, timestamp: new Date(Date.now() - 720000) },
-    ],
-    viewers: 23,
-    aiSuggestedPrice: 175,
-    surgeMultiplier: 1.6,
-  },
-  {
-    id: "demo-3",
-    title: "VIP Workshop Seat - Only 5 Available",
-    description: "Premium networking event",
-    image: productWorkshop,
-    startingBid: 499,
-    currentBid: 734,
-    timeRemaining: 1392,
-    bids: [
-      { bidder: "Alex M.", amount: 734, timestamp: new Date(Date.now() - 60000) },
-      { bidder: "Sam T.", amount: 710, timestamp: new Date(Date.now() - 240000) },
-      { bidder: "Jordan K.", amount: 685, timestamp: new Date(Date.now() - 480000) },
-      { bidder: "Taylor R.", amount: 660, timestamp: new Date(Date.now() - 720000) },
-    ],
-    viewers: 89,
-    aiSuggestedPrice: 820,
-    surgeMultiplier: 2.1,
-  },
+// Demo auction IDs - these should exist in your database
+const demoAuctionIds = [
+  "demo-auction-1",
+  "demo-auction-2", 
+  "demo-auction-3"
 ];
 
 export default function Demo() {
@@ -93,9 +44,9 @@ export default function Demo() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {demoAuctions.map((auction) => (
-            <div key={auction.id} className="animate-fade-in">
-              <AuctionWidget auctionData={auction} />
+          {demoAuctionIds.map((auctionId, idx) => (
+            <div key={auctionId} className="animate-fade-in">
+              <AuctionWidget auctionId={auctionId} />
             </div>
           ))}
         </div>

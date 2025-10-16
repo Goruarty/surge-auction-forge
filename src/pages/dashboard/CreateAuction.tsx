@@ -37,19 +37,8 @@ export default function CreateAuction() {
     toast.success("Auction created successfully! 🎉");
   };
 
-  const previewAuction = {
-    id: "preview",
-    title: formData.title || "Your Auction Title",
-    description: formData.description || "Your auction description will appear here",
-    image: productCoaching,
-    startingBid: parseInt(formData.startingBid) || 0,
-    currentBid: parseInt(formData.startingBid) || 0,
-    timeRemaining: parseInt(formData.duration) * 3600 || 86400,
-    bids: [],
-    viewers: 0,
-    aiSuggestedPrice: (parseInt(formData.startingBid) || 0) * 1.2,
-    surgeMultiplier: 1.0,
-  };
+  // For preview, we'll use a placeholder auction ID
+  const previewAuctionId = "preview-auction";
 
   const embedCode = `<script src="https://surge.ai/widget.js"></script>
 <div data-surge-auction="${formData.title.toLowerCase().replace(/\s+/g, '-')}" 
@@ -320,7 +309,7 @@ export default function CreateAuction() {
                 </div>
                 {previewOpen && (
                   <div className="scale-90 origin-top">
-                    <AuctionWidget auctionData={previewAuction} />
+                    <AuctionWidget auctionId={previewAuctionId} />
                   </div>
                 )}
               </Card>

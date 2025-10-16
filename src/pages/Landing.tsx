@@ -65,25 +65,8 @@ const pricingPlans = [
 export default function Landing() {
   const navigate = useNavigate();
 
-  const demoAuction = {
-    id: "demo-1",
-    title: "Limited Edition Denim Jacket - Size M",
-    description: "Only 3 left in stock",
-    image: productCoaching,
-    startingBid: 45,
-    currentBid: 89,
-    timeRemaining: 3420, // 57m
-    bids: [
-      { bidder: "Emma S.", amount: 89, timestamp: new Date(Date.now() - 120000) },
-      { bidder: "Liam R.", amount: 85, timestamp: new Date(Date.now() - 300000) },
-      { bidder: "Olivia K.", amount: 78, timestamp: new Date(Date.now() - 600000) },
-      { bidder: "Noah P.", amount: 72, timestamp: new Date(Date.now() - 900000) },
-      { bidder: "Ava M.", amount: 65, timestamp: new Date(Date.now() - 1200000) },
-    ],
-    viewers: 124,
-    aiSuggestedPrice: 95,
-    surgeMultiplier: 1.8,
-  };
+  // Demo auction ID - this should exist in your database
+  const demoAuctionId = "demo-auction-1";
 
   return (
     <div className="min-h-screen">
@@ -220,7 +203,7 @@ export default function Landing() {
             <p className="text-xl text-muted-foreground">Watch a live auction happening right now</p>
           </div>
           <div className="flex justify-center">
-            <AuctionWidget auctionData={demoAuction} />
+            <AuctionWidget auctionId={demoAuctionId} />
           </div>
         </div>
       </section>
