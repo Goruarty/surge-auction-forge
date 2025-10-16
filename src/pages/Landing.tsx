@@ -9,56 +9,56 @@ import productCoaching from "@/assets/product-coaching.png";
 const features = [
   {
     icon: Rocket,
-    title: "Deploy in Minutes",
-    description: "Simple embed code, works anywhere",
+    title: "Live in 5 Minutes",
+    description: "Drop-in widget for any online store",
   },
   {
     icon: Brain,
-    title: "Smart Pricing Algorithm",
-    description: "AI adjusts prices based on demand, time, and behavior",
+    title: "AI-Powered Pricing",
+    description: "Maximize profits on every item automatically",
   },
   {
     icon: DollarSign,
-    title: "Increase Revenue by 40%",
-    description: "Capture true market value",
+    title: "Sell 3x Faster",
+    description: "Turn excess inventory into bidding wars",
   },
   {
     icon: Shield,
-    title: "Anti-Bot Protection",
-    description: "Keep scalpers and bots out",
+    title: "Fair for Everyone",
+    description: "Anti-bot tech ensures real shoppers win",
   },
   {
     icon: BarChart3,
-    title: "Real-Time Analytics",
-    description: "Track bids, revenue, and trends",
+    title: "Know What Sells",
+    description: "See what customers really want to pay",
   },
   {
     icon: Palette,
-    title: "Fully Customizable",
-    description: "Match your brand perfectly",
+    title: "Your Brand, Your Way",
+    description: "Customize every color, font, and detail",
   },
 ];
 
 const pricingPlans = [
   {
-    name: "Free",
+    name: "Starter",
     price: "$0",
-    description: "Perfect for getting started",
-    features: ["First 100 auctions free", "Basic analytics", "Email support", "Standard widgets"],
+    description: "Try it risk-free",
+    features: ["First 50 auctions free", "Up to $5,000 in sales", "Basic analytics", "Email support", "Standard widgets"],
   },
   {
-    name: "Growth",
-    price: "$99",
+    name: "Business",
+    price: "$49",
     period: "/mo",
-    description: "For growing businesses",
-    features: ["Unlimited auctions", "2% transaction fee", "Advanced analytics", "Priority support", "Custom branding", "API access"],
+    description: "Perfect for online stores",
+    features: ["Unlimited auctions", "1.5% transaction fee", "Advanced analytics", "Priority support", "Custom branding", "Shopify & WooCommerce integrations"],
     popular: true,
   },
   {
     name: "Enterprise",
     price: "Custom",
-    description: "For large-scale operations",
-    features: ["Volume pricing", "White-label solution", "Dedicated support", "SLA guarantee", "Custom integrations", "Advanced security"],
+    description: "For major retailers",
+    features: ["Volume pricing (0.5% fee)", "White-label solution", "Dedicated account manager", "SLA guarantee", "Custom integrations", "Advanced fraud protection"],
   },
 ];
 
@@ -67,22 +67,22 @@ export default function Landing() {
 
   const demoAuction = {
     id: "demo-1",
-    title: "1-on-1 Strategy Session with Sarah Chen",
-    description: "Limited availability",
+    title: "Limited Edition Denim Jacket - Size M",
+    description: "Only 3 left in stock",
     image: productCoaching,
-    startingBid: 150,
-    currentBid: 287,
-    timeRemaining: 15780, // 4h 23m
+    startingBid: 45,
+    currentBid: 89,
+    timeRemaining: 3420, // 57m
     bids: [
-      { bidder: "Alex M.", amount: 287, timestamp: new Date(Date.now() - 120000) },
-      { bidder: "Jordan K.", amount: 275, timestamp: new Date(Date.now() - 300000) },
-      { bidder: "Sam T.", amount: 260, timestamp: new Date(Date.now() - 600000) },
-      { bidder: "Taylor R.", amount: 245, timestamp: new Date(Date.now() - 900000) },
-      { bidder: "Casey L.", amount: 230, timestamp: new Date(Date.now() - 1200000) },
+      { bidder: "Emma S.", amount: 89, timestamp: new Date(Date.now() - 120000) },
+      { bidder: "Liam R.", amount: 85, timestamp: new Date(Date.now() - 300000) },
+      { bidder: "Olivia K.", amount: 78, timestamp: new Date(Date.now() - 600000) },
+      { bidder: "Noah P.", amount: 72, timestamp: new Date(Date.now() - 900000) },
+      { bidder: "Ava M.", amount: 65, timestamp: new Date(Date.now() - 1200000) },
     ],
-    viewers: 47,
-    aiSuggestedPrice: 315,
-    surgeMultiplier: 1.4,
+    viewers: 124,
+    aiSuggestedPrice: 95,
+    surgeMultiplier: 1.8,
   };
 
   return (
@@ -114,16 +114,16 @@ export default function Landing() {
           <div className="space-y-8 animate-fade-in-up">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
               <Rocket className="w-4 h-4" />
-              Join 247 businesses using Surge.ai
+              Trusted by 247+ fashion & ecommerce brands
             </div>
             <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-              Turn Any Product Into A{" "}
+              Let Your Customers{" "}
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Smart Auction
+                Decide The Price
               </span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Surge.ai is the API for dynamic pricing. Add real-time auctions to your site in 3 lines of code.
+              Turn your clearance items, limited drops, and exclusive products into exciting auctions. Watch shoppers compete to buy what they love.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
@@ -178,8 +178,8 @@ export default function Landing() {
       <section id="how-it-works" className="py-20">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">How It Works</h2>
-            <p className="text-xl text-muted-foreground">Get started in three simple steps</p>
+            <h2 className="text-4xl font-bold mb-4">From Shopify to Bidding Wars in Minutes</h2>
+            <p className="text-xl text-muted-foreground">Works with any ecommerce platform</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="p-8 text-center">
@@ -216,8 +216,8 @@ export default function Landing() {
       <section className="py-20 bg-gradient-secondary">
         <div className="container mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">See It In Action</h2>
-            <p className="text-xl text-muted-foreground">This is a real, working auction widget</p>
+            <h2 className="text-4xl font-bold mb-4">Real Shoppers. Real Bids. Real Revenue.</h2>
+            <p className="text-xl text-muted-foreground">Watch a live auction happening right now</p>
           </div>
           <div className="flex justify-center">
             <AuctionWidget auctionData={demoAuction} />
@@ -229,8 +229,8 @@ export default function Landing() {
       <section id="pricing" className="py-20">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-xl text-muted-foreground">Choose the plan that fits your needs</p>
+            <h2 className="text-4xl font-bold mb-4">Start Free. Scale Forever.</h2>
+            <p className="text-xl text-muted-foreground">Only pay when you make money</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {pricingPlans.map((plan, idx) => (
@@ -310,7 +310,8 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t pt-8 text-center text-sm text-muted-foreground">
-            © 2025 Surge.ai. All rights reserved.
+            <p className="mb-2">© 2025 Surge.ai. All rights reserved.</p>
+            <p className="text-xs">Democratizing dynamic pricing for every business, from boutiques to global brands.</p>
           </div>
         </div>
       </footer>
