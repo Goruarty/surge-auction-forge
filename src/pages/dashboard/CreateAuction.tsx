@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,9 @@ import productCoaching from "@/assets/product-coaching.png";
 
 export default function CreateAuction() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = !!id;
+  
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -31,10 +34,58 @@ export default function CreateAuction() {
     aggressiveness: 50,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEditMode);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [algorithmOpen, setAlgorithmOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (isEditMode && id) {
+      fetchAuction();
+    }
+  }, [id, isEditMode]);
+
+  const fetchAuction = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (!data) {
+        toast.error("Auction not found");
+        navigate("/dashboard/auctions");
+        return;
+      }
+
+      // Calculate duration in hours from end_time
+      const now = new Date();
+      const endTime = new Date(data.end_time);
+      const hoursRemaining = Math.max(1, Math.ceil((endTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
+
+      setFormData({
+        title: data.title || "",
+        description: data.description || "",
+        startingBid: data.starting_bid?.toString() || "",
+        reservePrice: data.reserve_price?.toString() || "",
+        buyNowPrice: data.buy_now_price?.toString() || "",
+        duration: hoursRemaining.toString(),
+        autoExtend: data.auto_extend_enabled ?? true,
+        minIncrement: data.minimum_increment?.toString() || "5",
+        dynamicPricing: true,
+        aggressiveness: 50,
+      });
+    } catch (error) {
+      console.error("Error fetching auction:", error);
+      toast.error("Failed to load auction");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,33 +105,53 @@ export default function CreateAuction() {
       const endTime = new Date();
       endTime.setHours(endTime.getHours() + parseInt(formData.duration));
 
-      // Insert auction
-      const { data, error } = await supabase
-        .from('auctions')
-        .insert({
-          title: formData.title,
-          description: formData.description,
-          starting_bid: parseFloat(formData.startingBid),
-          current_bid: parseFloat(formData.startingBid),
-          reserve_price: formData.reservePrice ? parseFloat(formData.reservePrice) : null,
-          buy_now_price: formData.buyNowPrice ? parseFloat(formData.buyNowPrice) : null,
-          minimum_increment: parseFloat(formData.minIncrement),
-          end_time: endTime.toISOString(),
-          auto_extend_enabled: formData.autoExtend,
-          created_by: user.id,
-          status: 'active',
-          image_url: productCoaching
-        })
-        .select()
-        .single();
+      const auctionData = {
+        title: formData.title,
+        description: formData.description,
+        starting_bid: parseFloat(formData.startingBid),
+        reserve_price: formData.reservePrice ? parseFloat(formData.reservePrice) : null,
+        buy_now_price: formData.buyNowPrice ? parseFloat(formData.buyNowPrice) : null,
+        minimum_increment: parseFloat(formData.minIncrement),
+        end_time: endTime.toISOString(),
+        auto_extend_enabled: formData.autoExtend,
+      };
 
-      if (error) {
-        console.error("Error creating auction:", error);
-        toast.error(`Failed to create auction: ${error.message}`);
-        return;
+      if (isEditMode && id) {
+        // Update existing auction
+        const { error } = await supabase
+          .from('auctions')
+          .update(auctionData)
+          .eq('id', id)
+          .eq('created_by', user.id);
+
+        if (error) {
+          console.error("Error updating auction:", error);
+          toast.error(`Failed to update auction: ${error.message}`);
+          return;
+        }
+
+        toast.success("Auction updated successfully! 🎉");
+      } else {
+        // Create new auction
+        const { error } = await supabase
+          .from('auctions')
+          .insert({
+            ...auctionData,
+            current_bid: parseFloat(formData.startingBid),
+            created_by: user.id,
+            status: 'active',
+            image_url: productCoaching
+          });
+
+        if (error) {
+          console.error("Error creating auction:", error);
+          toast.error(`Failed to create auction: ${error.message}`);
+          return;
+        }
+
+        toast.success("Auction created successfully! 🎉");
       }
-
-      toast.success("Auction created successfully! 🎉");
+      
       navigate("/dashboard/auctions");
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -97,12 +168,24 @@ export default function CreateAuction() {
 <div data-surge-auction="${formData.title.toLowerCase().replace(/\s+/g, '-')}" 
      data-starting-bid="${formData.startingBid}"></div>`;
 
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
+        <Card className="p-12 text-center">
+          <p className="text-muted-foreground">Loading auction...</p>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">Create New Auction</h1>
-        <p className="text-muted-foreground">Set up your product auction in minutes</p>
+        <h1 className="text-3xl font-bold mb-2">{isEditMode ? "Edit Auction" : "Create New Auction"}</h1>
+        <p className="text-muted-foreground">
+          {isEditMode ? "Update your auction details" : "Set up your product auction in minutes"}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -335,11 +418,13 @@ export default function CreateAuction() {
             {/* Submit */}
             <div className="flex gap-4">
               <Button type="submit" className="bg-gradient-primary flex-1" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Auction"}
+                {isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Auction" : "Create Auction")}
               </Button>
-              <Button type="button" variant="outline" disabled={isSubmitting}>
-                Save as Draft
-              </Button>
+              {!isEditMode && (
+                <Button type="button" variant="outline" disabled={isSubmitting}>
+                  Save as Draft
+                </Button>
+              )}
             </div>
           </div>
 
