@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +13,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Upload, Eye, Code } from "lucide-react";
 import { AuctionWidget } from "@/components/AuctionWidget";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import productCoaching from "@/assets/product-coaching.png";
 
 export default function CreateAuction() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -27,14 +30,64 @@ export default function CreateAuction() {
     dynamicPricing: true,
     aggressiveness: 50,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [algorithmOpen, setAlgorithmOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Auction created successfully! 🎉");
+    setIsSubmitting(true);
+
+    try {
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        toast.error("You must be logged in to create an auction");
+        navigate("/auth");
+        return;
+      }
+
+      // Calculate end time based on duration
+      const endTime = new Date();
+      endTime.setHours(endTime.getHours() + parseInt(formData.duration));
+
+      // Insert auction
+      const { data, error } = await supabase
+        .from('auctions')
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          starting_bid: parseFloat(formData.startingBid),
+          current_bid: parseFloat(formData.startingBid),
+          reserve_price: formData.reservePrice ? parseFloat(formData.reservePrice) : null,
+          buy_now_price: formData.buyNowPrice ? parseFloat(formData.buyNowPrice) : null,
+          minimum_increment: parseFloat(formData.minIncrement),
+          end_time: endTime.toISOString(),
+          auto_extend_enabled: formData.autoExtend,
+          created_by: user.id,
+          status: 'active',
+          image_url: productCoaching
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating auction:", error);
+        toast.error(`Failed to create auction: ${error.message}`);
+        return;
+      }
+
+      toast.success("Auction created successfully! 🎉");
+      navigate("/dashboard/auctions");
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Note: This is just for preview - actual auctions will have real UUIDs
@@ -281,10 +334,10 @@ export default function CreateAuction() {
 
             {/* Submit */}
             <div className="flex gap-4">
-              <Button type="submit" className="bg-gradient-primary flex-1">
-                Create Auction
+              <Button type="submit" className="bg-gradient-primary flex-1" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Auction"}
               </Button>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" disabled={isSubmitting}>
                 Save as Draft
               </Button>
             </div>
