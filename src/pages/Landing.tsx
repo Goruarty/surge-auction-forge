@@ -143,8 +143,8 @@ const pricingPlans = [
 export default function Landing() {
   const navigate = useNavigate();
 
-  // Using a real auction ID from your database
-  const demoAuctionId = "9a354d99-619b-4903-bef9-8c53557ed8fe";
+  // Using the latest active auction ID from your database
+  const demoAuctionId = "6359453c-db16-4df2-b7c8-391257d92209";
 
   return (
     <div className="min-h-screen">
