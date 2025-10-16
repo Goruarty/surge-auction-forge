@@ -190,7 +190,12 @@ export default function Auctions() {
               </div>
 
               <div className="flex gap-2 pt-2 border-t">
-                <Button variant="outline" className="flex-1" size="sm">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  size="sm"
+                  onClick={() => navigate(`/dashboard/auctions/${auction.id}`)}
+                >
                   View Details
                 </Button>
                 <DropdownMenu>
@@ -200,15 +205,53 @@ export default function Auctions() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate(`/dashboard/auctions/${auction.id}/edit`)}>
                       <Edit className="mr-2 w-4 h-4" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={async () => {
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) return;
+                        
+                        const { error } = await supabase.from('auctions').insert({
+                          ...auction,
+                          id: undefined,
+                          created_at: undefined,
+                          updated_at: undefined,
+                          created_by: user.id,
+                          title: `${auction.title} (Copy)`,
+                          status: 'draft'
+                        });
+                        
+                        if (error) throw error;
+                        toast.success("Auction duplicated successfully");
+                        fetchAuctions();
+                      } catch (error) {
+                        toast.error("Failed to duplicate auction");
+                      }
+                    }}>
                       <Copy className="mr-2 w-4 h-4" />
                       Duplicate
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem 
+                      className="text-destructive"
+                      onClick={async () => {
+                        if (!confirm("Are you sure you want to delete this auction?")) return;
+                        try {
+                          const { error } = await supabase
+                            .from('auctions')
+                            .delete()
+                            .eq('id', auction.id);
+                          
+                          if (error) throw error;
+                          toast.success("Auction deleted successfully");
+                          fetchAuctions();
+                        } catch (error) {
+                          toast.error("Failed to delete auction");
+                        }
+                      }}
+                    >
                       <Trash className="mr-2 w-4 h-4" />
                       Delete
                     </DropdownMenuItem>

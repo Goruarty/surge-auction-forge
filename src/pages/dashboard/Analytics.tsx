@@ -1,51 +1,146 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Calendar, Download, TrendingUp, DollarSign, Target, Users } from "lucide-react";
-
-const revenueData = [
-  { date: "Jan 1", revenue: 3200, fixed: 2400, gmv: 3520 },
-  { date: "Jan 8", revenue: 4100, fixed: 2800, gmv: 4510 },
-  { date: "Jan 15", revenue: 5300, fixed: 3200, gmv: 5830 },
-  { date: "Jan 22", revenue: 6800, fixed: 3900, gmv: 7480 },
-  { date: "Jan 29", revenue: 7200, fixed: 4100, gmv: 7920 },
-  { date: "Feb 5", revenue: 8500, fixed: 4600, gmv: 9350 },
-  { date: "Feb 12", revenue: 9100, fixed: 4900, gmv: 10010 },
-];
-
-const bidActivityData = [
-  { hour: "12am", bids: 5 },
-  { hour: "3am", bids: 2 },
-  { hour: "6am", bids: 8 },
-  { hour: "9am", bids: 45 },
-  { hour: "12pm", bids: 67 },
-  { hour: "3pm", bids: 82 },
-  { hour: "6pm", bids: 95 },
-  { hour: "9pm", bids: 73 },
-];
-
-const dayOfWeekData = [
-  { day: "Mon", avgBid: 245 },
-  { day: "Tue", avgBid: 289 },
-  { day: "Wed", avgBid: 312 },
-  { day: "Thu", avgBid: 298 },
-  { day: "Fri", avgBid: 267 },
-  { day: "Sat", avgBid: 223 },
-  { day: "Sun", avgBid: 198 },
-];
-
-const productPerformance = [
-  { product: "Strategy Sessions", auctions: 15, avgBid: 287, revenue: 4305, lift: "+42%" },
-  { product: "Courses", auctions: 23, avgBid: 156, revenue: 3588, lift: "+38%" },
-  { product: "Workshops", auctions: 8, avgBid: 734, revenue: 5872, lift: "+51%" },
-  { product: "Consultations", auctions: 12, avgBid: 425, revenue: 5100, lift: "+35%" },
-  { product: "Reviews", auctions: 19, avgBid: 198, revenue: 3762, lift: "+29%" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState("30");
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({
+    totalGMV: 0,
+    avgWinningBid: 0,
+    conversionRate: 0,
+    revenueLift: 0,
+    additionalRevenue: 0
+  });
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [bidActivityData, setBidActivityData] = useState<any[]>([]);
+  const [dayOfWeekData, setDayOfWeekData] = useState<any[]>([]);
+  const [productPerformance, setProductPerformance] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [dateRange]);
+
+  const fetchAnalytics = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Calculate date range
+      const now = new Date();
+      const daysAgo = dateRange === "all" ? 365 : parseInt(dateRange);
+      const startDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+
+      // Fetch auctions and bids
+      const { data: auctions, error: auctionsError } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('created_by', user.id)
+        .gte('created_at', startDate.toISOString());
+
+      if (auctionsError) throw auctionsError;
+
+      const { data: bids, error: bidsError } = await supabase
+        .from('bids')
+        .select('*')
+        .gte('created_at', startDate.toISOString());
+
+      if (bidsError) throw bidsError;
+
+      // Calculate metrics
+      const totalGMV = auctions?.reduce((sum, a) => sum + Number(a.current_bid || 0), 0) || 0;
+      const totalStarting = auctions?.reduce((sum, a) => sum + Number(a.starting_bid || 0), 0) || 0;
+      const endedAuctions = auctions?.filter(a => a.status === 'ended') || [];
+      const avgWinningBid = endedAuctions.length > 0 
+        ? endedAuctions.reduce((sum, a) => sum + Number(a.current_bid || 0), 0) / endedAuctions.length 
+        : 0;
+      const totalViewers = auctions?.reduce((sum, a) => sum + (a.viewers || 0), 0) || 0;
+      const conversionRate = totalViewers > 0 ? (endedAuctions.length / totalViewers) * 100 : 0;
+      const additionalRevenue = totalGMV - totalStarting;
+      const revenueLift = totalStarting > 0 ? ((totalGMV - totalStarting) / totalStarting) * 100 : 0;
+
+      setMetrics({
+        totalGMV,
+        avgWinningBid,
+        conversionRate,
+        revenueLift,
+        additionalRevenue
+      });
+
+      // Revenue trend data (weekly)
+      const weeklyRevenue = Array.from({ length: 7 }, (_, i) => {
+        const weekStart = new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const weekAuctions = auctions?.filter(a => 
+          new Date(a.created_at) >= weekStart && new Date(a.created_at) < weekEnd
+        ) || [];
+        const revenue = weekAuctions.reduce((sum, a) => sum + Number(a.current_bid || 0), 0);
+        const fixed = weekAuctions.reduce((sum, a) => sum + Number(a.starting_bid || 0), 0);
+        return {
+          date: weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          revenue: Math.round(revenue),
+          fixed: Math.round(fixed),
+          gmv: Math.round(revenue * 1.1)
+        };
+      });
+      setRevenueData(weeklyRevenue);
+
+      // Bid activity by hour
+      const hourlyBids = Array.from({ length: 8 }, (_, i) => {
+        const hour = i * 3;
+        const hourBids = bids?.filter(b => new Date(b.created_at).getHours() === hour) || [];
+        return {
+          hour: `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}${hour < 12 ? 'am' : 'pm'}`,
+          bids: hourBids.length
+        };
+      });
+      setBidActivityData(hourlyBids);
+
+      // Average bid by day of week
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dailyAvg = days.map((day, idx) => {
+        const dayBids = bids?.filter(b => new Date(b.created_at).getDay() === idx) || [];
+        const avgBid = dayBids.length > 0 
+          ? dayBids.reduce((sum, b) => sum + Number(b.amount), 0) / dayBids.length 
+          : 0;
+        return { day, avgBid: Math.round(avgBid) };
+      });
+      setDayOfWeekData(dailyAvg);
+
+      // Product performance by title keywords
+      const products = ['Strategy', 'Course', 'Workshop', 'Consultation', 'Review'];
+      const performance = products.map(product => {
+        const productAuctions = auctions?.filter(a => 
+          a.title?.toLowerCase().includes(product.toLowerCase())
+        ) || [];
+        const revenue = productAuctions.reduce((sum, a) => sum + Number(a.current_bid || 0), 0);
+        const starting = productAuctions.reduce((sum, a) => sum + Number(a.starting_bid || 0), 0);
+        const avgBid = productAuctions.length > 0 
+          ? revenue / productAuctions.length 
+          : 0;
+        const lift = starting > 0 ? ((revenue - starting) / starting) * 100 : 0;
+        return {
+          product: product + 's',
+          auctions: productAuctions.length,
+          avgBid: Math.round(avgBid),
+          revenue: Math.round(revenue),
+          lift: lift > 0 ? `+${Math.round(lift)}%` : '0%'
+        };
+      }).filter(p => p.auctions > 0);
+      setProductPerformance(performance);
+
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      toast.error("Failed to load analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -82,23 +177,23 @@ export default function Analytics() {
             <div className="text-sm text-muted-foreground">Total GMV</div>
             <DollarSign className="w-5 h-5 text-primary" />
           </div>
-          <div className="text-3xl font-bold mb-1">$48,452</div>
-          <div className="text-sm text-success">+32.4% vs fixed pricing</div>
+          <div className="text-3xl font-bold mb-1">${Math.round(metrics.totalGMV).toLocaleString()}</div>
+          <div className="text-sm text-success">+{metrics.revenueLift.toFixed(1)}% vs fixed pricing</div>
         </Card>
         <Card className="p-6">
           <div className="flex items-start justify-between mb-2">
             <div className="text-sm text-muted-foreground">Avg Winning Bid</div>
             <TrendingUp className="w-5 h-5 text-accent" />
           </div>
-          <div className="text-3xl font-bold mb-1">$312</div>
-          <div className="text-sm text-success">+28.1% vs starting</div>
+          <div className="text-3xl font-bold mb-1">${Math.round(metrics.avgWinningBid).toLocaleString()}</div>
+          <div className="text-sm text-success">Average winning price</div>
         </Card>
         <Card className="p-6">
           <div className="flex items-start justify-between mb-2">
             <div className="text-sm text-muted-foreground">Conversion Rate</div>
             <Target className="w-5 h-5 text-success" />
           </div>
-          <div className="text-3xl font-bold mb-1">18.7%</div>
+          <div className="text-3xl font-bold mb-1">{metrics.conversionRate.toFixed(1)}%</div>
           <div className="text-sm text-muted-foreground">Viewers → Winners</div>
         </Card>
         <Card className="p-6">
@@ -106,8 +201,8 @@ export default function Analytics() {
             <div className="text-sm text-muted-foreground">Revenue Lift</div>
             <Users className="w-5 h-5 text-warning" />
           </div>
-          <div className="text-3xl font-bold mb-1">+37%</div>
-          <div className="text-sm text-success">$12,847 additional</div>
+          <div className="text-3xl font-bold mb-1">+{Math.round(metrics.revenueLift)}%</div>
+          <div className="text-sm text-success">${Math.round(metrics.additionalRevenue).toLocaleString()} additional</div>
         </Card>
       </div>
 
@@ -197,8 +292,8 @@ export default function Analytics() {
         <div className="grid md:grid-cols-3 gap-6 mb-6">
           <div className="p-4 bg-success/10 rounded-lg">
             <div className="text-sm text-muted-foreground mb-1">Additional Revenue</div>
-            <div className="text-2xl font-bold text-success">$4,234</div>
-            <div className="text-xs text-muted-foreground mt-1">37% increase this month</div>
+            <div className="text-2xl font-bold text-success">${Math.round(metrics.additionalRevenue).toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground mt-1">{Math.round(metrics.revenueLift)}% increase this period</div>
           </div>
           <div className="p-4 bg-primary/10 rounded-lg">
             <div className="text-sm text-muted-foreground mb-1">AI Accuracy</div>

@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import { DashboardLayout } from "./components/DashboardLayout";
 import Overview from "./pages/dashboard/Overview";
 import Auctions from "./pages/dashboard/Auctions";
+import AuctionDetail from "./pages/dashboard/AuctionDetail";
 import CreateAuction from "./pages/dashboard/CreateAuction";
 import Analytics from "./pages/dashboard/Analytics";
 import Algorithm from "./pages/dashboard/Algorithm";
@@ -29,6 +30,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<DashboardLayout><Overview /></DashboardLayout>} />
           <Route path="/dashboard/auctions" element={<DashboardLayout><Auctions /></DashboardLayout>} />
+          <Route path="/dashboard/auctions/:id" element={<DashboardLayout><AuctionDetail /></DashboardLayout>} />
+          <Route path="/dashboard/auctions/:id/edit" element={<DashboardLayout><CreateAuction /></DashboardLayout>} />
           <Route path="/dashboard/create" element={<DashboardLayout><CreateAuction /></DashboardLayout>} />
           <Route path="/dashboard/analytics" element={<DashboardLayout><Analytics /></DashboardLayout>} />
           <Route path="/dashboard/algorithm" element={<DashboardLayout><Algorithm /></DashboardLayout>} />
