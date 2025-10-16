@@ -102,16 +102,19 @@ export function useAuction(auctionId: string) {
         .from('auctions')
         .select('*')
         .eq('id', auctionId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      
+      if (!data) {
+        console.log("No auction found with ID:", auctionId);
+        setLoading(false);
+        return;
+      }
+      
       setAuction(data);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error fetching auction:", error);
     } finally {
       setLoading(false);
     }
