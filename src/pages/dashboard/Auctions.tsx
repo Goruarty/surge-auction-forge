@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,72 +7,74 @@ import { PlusCircle, Search, Clock, Eye, TrendingUp, MoreHorizontal, Copy, Edit,
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import productCoaching from "@/assets/product-coaching.png";
-import productCourse from "@/assets/product-course.png";
-import productWorkshop from "@/assets/product-workshop.png";
 
-const auctions = [
-  {
-    id: 1,
-    title: "1-on-1 Strategy Session with Sarah Chen",
-    image: productCoaching,
-    currentBid: 287,
-    startingBid: 150,
-    timeLeft: "4h 23m",
-    bids: 12,
-    viewers: 47,
-    status: "active",
-  },
-  {
-    id: 2,
-    title: "Growth Hacking Course 2025",
-    image: productCourse,
-    currentBid: 156,
-    startingBid: 99,
-    timeLeft: "1h 47m",
-    bids: 23,
-    viewers: 89,
-    status: "active",
-  },
-  {
-    id: 3,
-    title: "VIP Workshop Seat",
-    image: productWorkshop,
-    currentBid: 734,
-    startingBid: 499,
-    timeLeft: "23m",
-    bids: 8,
-    viewers: 134,
-    status: "ending_soon",
-  },
-  {
-    id: 4,
-    title: "Marketing Consultation Package",
-    image: productCoaching,
-    currentBid: 425,
-    startingBid: 300,
-    timeLeft: "Scheduled",
-    bids: 0,
-    viewers: 0,
-    status: "scheduled",
-  },
-  {
-    id: 5,
-    title: "Premium Design Review",
-    image: productCourse,
-    currentBid: 345,
-    startingBid: 200,
-    timeLeft: "Ended",
-    bids: 19,
-    viewers: 67,
-    status: "ended",
-  },
-];
+interface Auction {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  current_bid: number;
+  starting_bid: number;
+  end_time: string;
+  status: string;
+  viewers: number;
+  created_at: string;
+}
 
 export default function Auctions() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAuctions();
+  }, []);
+
+  const fetchAuctions = async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        toast.error("Please sign in to view your auctions");
+        navigate("/auth");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setAuctions(data || []);
+    } catch (error: any) {
+      console.error("Error fetching auctions:", error);
+      toast.error("Failed to load auctions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTimeRemaining = (endTime: string) => {
+    const now = new Date().getTime();
+    const end = new Date(endTime).getTime();
+    const remaining = end - now;
+
+    if (remaining <= 0) return "Ended";
+
+    const hours = Math.floor(remaining / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
 
   const filteredAuctions = auctions.filter(auction => {
     const matchesFilter = filter === "all" || auction.status === filter;
@@ -137,48 +139,49 @@ export default function Auctions() {
       </Card>
 
       {/* Auctions Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredAuctions.map((auction) => (
-          <Card key={auction.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="relative h-48 bg-muted">
-              <img 
-                src={auction.image} 
-                alt={auction.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-3 right-3">
-                {getStatusBadge(auction.status)}
+      {loading ? (
+        <Card className="p-12 text-center">
+          <p className="text-muted-foreground">Loading your auctions...</p>
+        </Card>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAuctions.map((auction) => (
+            <Card key={auction.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <div className="relative h-48 bg-muted">
+                <img 
+                  src={auction.image_url || productCoaching} 
+                  alt={auction.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-3 right-3">
+                  {getStatusBadge(auction.status)}
+                </div>
               </div>
-            </div>
             <div className="p-6 space-y-4">
               <h3 className="font-semibold text-lg line-clamp-2">{auction.title}</h3>
               
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Current Bid</span>
-                  <span className="text-xl font-bold">${auction.currentBid}</span>
+                  <span className="text-xl font-bold">${auction.current_bid}</span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
                   <div 
                     className="bg-gradient-primary h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min((auction.currentBid / auction.startingBid) * 50, 100)}%` }}
+                    style={{ width: `${Math.min((auction.current_bid / auction.starting_bid) * 50, 100)}%` }}
                   />
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Started at ${auction.startingBid}
+                  Started at ${auction.starting_bid}
                 </div>
               </div>
 
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Clock className="w-4 h-4" />
-                  {auction.timeLeft}
+                  {getTimeRemaining(auction.end_time)}
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                    {auction.bids}
-                  </div>
                   <div className="flex items-center gap-1">
                     <Eye className="w-4 h-4 text-muted-foreground" />
                     {auction.viewers}
@@ -213,9 +216,10 @@ export default function Auctions() {
                 </DropdownMenu>
               </div>
             </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {filteredAuctions.length === 0 && (
         <Card className="p-12 text-center">
