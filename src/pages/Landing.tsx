@@ -36,7 +36,7 @@ const features = [
   },
   {
     icon: DollarSign,
-    title: "Increase Revenue by 40%+",
+    title: "Increase Revenue",
     description: "Proven across 247+ businesses. Capture the value that currently goes to resellers and scalpers. See revenue lift in first week.",
   },
   {
