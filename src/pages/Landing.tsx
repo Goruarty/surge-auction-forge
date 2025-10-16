@@ -178,11 +178,11 @@ export default function Landing() {
           <div className="space-y-8 animate-fade-in-up">
             <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Stripe for Dynamic Pricing
+                Pricing Infrastructure for the Internet
               </span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Add AI-powered auctions to any product in 3 lines of code. Increase revenue by 40%+.
+              Surge.ai is the API for auctions and dynamic pricing. Add intelligent price discovery to any business in 3 lines of code.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
