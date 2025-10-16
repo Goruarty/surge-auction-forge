@@ -37,8 +37,8 @@ export default function CreateAuction() {
     toast.success("Auction created successfully! 🎉");
   };
 
-  // For preview, we'll use a placeholder auction ID
-  const previewAuctionId = "preview-auction";
+  // Note: This is just for preview - actual auctions will have real UUIDs
+  const previewAuctionId = "00000000-0000-0000-0000-000000000000";
 
   const embedCode = `<script src="https://surge.ai/widget.js"></script>
 <div data-surge-auction="${formData.title.toLowerCase().replace(/\s+/g, '-')}" 

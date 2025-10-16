@@ -65,8 +65,8 @@ const pricingPlans = [
 export default function Landing() {
   const navigate = useNavigate();
 
-  // Demo auction ID - this should exist in your database
-  const demoAuctionId = "demo-auction-1";
+  // Note: This auction ID should be replaced with an actual UUID from your database
+  const demoAuctionId = "00000000-0000-0000-0000-000000000001";
 
   return (
     <div className="min-h-screen">
