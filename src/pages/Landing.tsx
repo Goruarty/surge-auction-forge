@@ -84,7 +84,10 @@ export default function Landing() {
             <a href="#how-it-works" className="text-sm hover:text-primary transition-colors">How It Works</a>
             <a href="#pricing" className="text-sm hover:text-primary transition-colors">Pricing</a>
             <Button variant="outline" onClick={() => navigate("/demo")}>Live Demo</Button>
-            <Button onClick={() => navigate("/dashboard")} className="bg-gradient-primary">
+            <Button variant="ghost" onClick={() => navigate("/auth")}>
+              Sign In
+            </Button>
+            <Button onClick={() => navigate("/auth")} className="bg-gradient-primary">
               Start Free Trial
             </Button>
           </div>
@@ -120,7 +123,7 @@ export default function Landing() {
               <Button 
                 size="lg" 
                 variant="outline"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/auth")}
                 className="text-lg px-8"
               >
                 Start Free Trial
@@ -243,7 +246,7 @@ export default function Landing() {
                 <Button 
                   className={`w-full ${plan.popular ? "bg-gradient-primary" : ""}`}
                   variant={plan.popular ? "default" : "outline"}
-                  onClick={() => navigate("/dashboard")}
+                  onClick={() => navigate("/auth")}
                 >
                   Get Started
                 </Button>

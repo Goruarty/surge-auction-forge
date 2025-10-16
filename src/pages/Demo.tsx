@@ -29,9 +29,14 @@ export default function Demo() {
           <div className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Surge.ai
           </div>
-          <Button onClick={() => navigate("/dashboard")} className="bg-gradient-primary">
-            Go to Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/auth")}>
+              Sign In
+            </Button>
+            <Button onClick={() => navigate("/auth")} className="bg-gradient-primary">
+              Start Free Trial
+            </Button>
+          </div>
         </div>
       </nav>
 
