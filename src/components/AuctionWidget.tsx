@@ -1,73 +1,35 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Clock, TrendingUp, Eye, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useAuction } from "@/hooks/useAuction";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Bid {
-  bidder: string;
-  amount: number;
-  timestamp: Date;
+interface AuctionWidgetProps {
+  auctionId: string;
 }
 
-interface AuctionData {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  startingBid: number;
-  currentBid: number;
-  timeRemaining: number;
-  bids: Bid[];
-  viewers: number;
-  aiSuggestedPrice: number;
-  surgeMultiplier: number;
-}
-
-const FAKE_BIDDERS = ["Alex M.", "Jordan K.", "Sam T.", "Taylor R.", "Casey L.", "Morgan B.", "Jamie P."];
-
-export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: AuctionData; onBidPlaced?: (amount: number) => void }) {
-  const [auction, setAuction] = useState(auctionData);
+export function AuctionWidget({ auctionId }: AuctionWidgetProps) {
+  const navigate = useNavigate();
+  const { auction, bids, loading, timeRemaining, placeBid } = useAuction(auctionId);
   const [bidAmount, setBidAmount] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userHighBid, setUserHighBid] = useState(0);
   const [isPlacingBid, setIsPlacingBid] = useState(false);
 
-  // Simulate real-time bidding
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Random chance to add a bid (15-45 second intervals)
-      if (Math.random() > 0.7 && auction.timeRemaining > 0) {
-        const randomBidder = FAKE_BIDDERS[Math.floor(Math.random() * FAKE_BIDDERS.length)];
-        const bidIncrement = Math.floor(Math.random() * 10 + 1) * 5; // $5-$50
-        const newBid = auction.currentBid + bidIncrement;
-        
-        setAuction(prev => ({
-          ...prev,
-          currentBid: newBid,
-          bids: [
-            { bidder: randomBidder, amount: newBid, timestamp: new Date() },
-            ...prev.bids.slice(0, 4)
-          ],
-          viewers: prev.viewers + Math.floor(Math.random() * 3 - 1),
-          aiSuggestedPrice: newBid * 1.1,
-        }));
-      }
-    }, Math.random() * 30000 + 15000);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
 
-    return () => clearInterval(interval);
-  }, [auction]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
 
-  // Countdown timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAuction(prev => ({
-        ...prev,
-        timeRemaining: Math.max(0, prev.timeRemaining - 1),
-      }));
-    }, 1000);
-
-    return () => clearInterval(timer);
+    return () => subscription.unsubscribe();
   }, []);
 
   const formatTime = (seconds: number) => {
@@ -81,7 +43,13 @@ export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: Aucti
     return `${minutes}m ${secs}s`;
   };
 
-  const handlePlaceBid = () => {
+  const handlePlaceBid = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to place a bid");
+      setTimeout(() => navigate("/auth"), 1000);
+      return;
+    }
+
     const amount = parseFloat(bidAmount);
     
     if (isNaN(amount)) {
@@ -89,45 +57,60 @@ export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: Aucti
       return;
     }
     
-    if (amount < auction.currentBid + 5) {
-      toast.error("Bid must be at least $5 higher than current bid");
+    const minBid = auction!.current_bid > 0 
+      ? auction!.current_bid + auction!.minimum_increment
+      : auction!.starting_bid;
+    
+    if (amount < minBid) {
+      toast.error(`Bid must be at least $${minBid.toFixed(2)}`);
       return;
     }
 
     setIsPlacingBid(true);
     
-    setTimeout(() => {
-      setAuction(prev => ({
-        ...prev,
-        currentBid: amount,
-        bids: [
-          { bidder: "You", amount, timestamp: new Date() },
-          ...prev.bids.slice(0, 4)
-        ],
-        // Auto-extend if bid in last 2 minutes
-        timeRemaining: prev.timeRemaining < 120 ? prev.timeRemaining + 120 : prev.timeRemaining,
-      }));
-      
+    const success = await placeBid(amount);
+    
+    if (success) {
       setUserHighBid(amount);
       setBidAmount("");
-      setIsPlacingBid(false);
       toast.success("Bid placed successfully! 🎉");
-      onBidPlaced?.(amount);
-    }, 800);
+    }
+    
+    setIsPlacingBid(false);
   };
 
-  const isWinning = userHighBid > 0 && userHighBid === auction.currentBid;
-  const isUrgent = auction.timeRemaining < 300; // Less than 5 minutes
+  if (loading) {
+    return (
+      <Card className="w-full max-w-md mx-auto p-6 animate-pulse">
+        <div className="h-64 bg-muted rounded-lg mb-4" />
+        <div className="h-6 bg-muted rounded mb-2" />
+        <div className="h-4 bg-muted rounded w-2/3" />
+      </Card>
+    );
+  }
+
+  if (!auction) {
+    return (
+      <Card className="w-full max-w-md mx-auto p-6">
+        <p className="text-center text-muted-foreground">Auction not found</p>
+      </Card>
+    );
+  }
+
+  const isWinning = userHighBid > 0 && userHighBid === auction.current_bid;
+  const isUrgent = timeRemaining < 300; // Less than 5 minutes
 
   return (
     <Card className="w-full max-w-md overflow-hidden shadow-lg">
       {/* Product Image */}
       <div className="relative h-64 overflow-hidden bg-gradient-secondary">
-        <img 
-          src={auction.image} 
-          alt={auction.title}
-          className="w-full h-full object-cover"
-        />
+        {auction.image_url && (
+          <img 
+            src={auction.image_url} 
+            alt={auction.title}
+            className="w-full h-full object-cover"
+          />
+        )}
         <div className="absolute top-3 right-3 flex gap-2">
           <div className="bg-background/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
             <Eye className="w-3 h-3" />
@@ -147,7 +130,7 @@ export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: Aucti
         <div className={`p-4 rounded-lg ${isWinning ? "bg-success/10 border-2 border-success" : "bg-gradient-secondary"}`}>
           <div className="text-sm text-muted-foreground mb-1">Current High Bid</div>
           <div className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            ${auction.currentBid}
+            ${auction.current_bid.toFixed(2)}
           </div>
           {isWinning && (
             <div className="text-sm text-success font-medium mt-1 flex items-center gap-1">
@@ -158,16 +141,18 @@ export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: Aucti
         </div>
 
         {/* AI Insights */}
-        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="text-muted-foreground">AI Price:</span>
-            <span className="font-semibold">${Math.round(auction.aiSuggestedPrice)}</span>
+        {auction.ai_suggested_price && (
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-muted-foreground">AI Price:</span>
+              <span className="font-semibold">${auction.ai_suggested_price.toFixed(2)}</span>
+            </div>
+            <div className="text-warning font-medium">
+              {auction.surge_multiplier.toFixed(1)}x surge
+            </div>
           </div>
-          <div className="text-warning font-medium">
-            {auction.surgeMultiplier}x surge
-          </div>
-        </div>
+        )}
 
         {/* Countdown Timer */}
         <div className={`flex items-center justify-center gap-2 p-3 rounded-lg ${isUrgent ? "bg-warning/10 animate-pulse-glow" : "bg-muted/50"}`}>
@@ -175,18 +160,18 @@ export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: Aucti
           <div>
             <div className="text-xs text-muted-foreground">Time Remaining</div>
             <div className={`text-lg font-bold ${isUrgent ? "text-warning" : ""}`}>
-              {formatTime(auction.timeRemaining)}
+              {formatTime(timeRemaining)}
             </div>
           </div>
         </div>
 
         {/* Bid Input */}
-        {auction.timeRemaining > 0 && (
+        {timeRemaining > 0 && auction.status === 'active' && (
           <div className="space-y-2">
             <div className="flex gap-2">
               <Input
                 type="number"
-                placeholder={`Min $${auction.currentBid + 5}`}
+                placeholder={`Min $${(auction.current_bid > 0 ? auction.current_bid + auction.minimum_increment : auction.starting_bid).toFixed(2)}`}
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
                 className="flex-1"
@@ -199,9 +184,18 @@ export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: Aucti
                 {isPlacingBid ? "Placing..." : "Place Bid"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Minimum bid: ${auction.currentBid + 5}
-            </p>
+            {!isAuthenticated && (
+              <p className="text-xs text-muted-foreground text-center">
+                <Button 
+                  variant="link" 
+                  className="h-auto p-0 text-xs" 
+                  onClick={() => navigate("/auth")}
+                >
+                  Sign in
+                </Button>
+                {" "}to place a bid
+              </p>
+            )}
           </div>
         )}
 
@@ -209,20 +203,24 @@ export function AuctionWidget({ auctionData, onBidPlaced }: { auctionData: Aucti
         <div className="space-y-2">
           <h4 className="text-sm font-semibold">Recent Bids</h4>
           <div className="space-y-1 max-h-32 overflow-y-auto">
-            {auction.bids.map((bid, idx) => (
-              <div 
-                key={idx}
-                className={`flex justify-between items-center text-sm p-2 rounded ${bid.bidder === "You" ? "bg-success/10" : "bg-muted/30"}`}
-              >
-                <span className="font-medium">{bid.bidder}</span>
-                <div className="text-right">
-                  <div className="font-semibold">${bid.amount}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.floor((Date.now() - bid.timestamp.getTime()) / 1000 / 60)}m ago
+            {bids.length > 0 ? (
+              bids.map((bid) => (
+                <div 
+                  key={bid.id}
+                  className="flex justify-between items-center text-sm p-2 rounded bg-muted/30"
+                >
+                  <span className="font-medium">{bid.bidder.display_name}</span>
+                  <div className="text-right">
+                    <div className="font-semibold">${bid.amount.toFixed(2)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {Math.floor((Date.now() - new Date(bid.created_at).getTime()) / 1000 / 60)}m ago
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">No bids yet - be the first!</p>
+            )}
           </div>
         </div>
 
