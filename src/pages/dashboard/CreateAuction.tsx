@@ -33,8 +33,11 @@ export default function CreateAuction() {
     dynamicPricing: true,
     aggressiveness: 50,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [algorithmOpen, setAlgorithmOpen] = useState(false);
@@ -79,11 +82,69 @@ export default function CreateAuction() {
         dynamicPricing: true,
         aggressiveness: 50,
       });
+      
+      if (data.image_url) {
+        setImagePreview(data.image_url);
+      }
     } catch (error) {
       console.error("Error fetching auction:", error);
       toast.error("Failed to load auction");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be less than 10MB");
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadImage = async (userId: string): Promise<string> => {
+    if (!imageFile) return productCoaching;
+
+    setIsUploadingImage(true);
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('auction-images')
+        .upload(fileName, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('auction-images')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+      return productCoaching;
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -101,6 +162,12 @@ export default function CreateAuction() {
         return;
       }
 
+      // Upload image if there's a new one
+      let imageUrl = imagePreview || productCoaching;
+      if (imageFile) {
+        imageUrl = await uploadImage(user.id);
+      }
+
       // Calculate end time based on duration
       const endTime = new Date();
       endTime.setHours(endTime.getHours() + parseInt(formData.duration));
@@ -114,6 +181,7 @@ export default function CreateAuction() {
         minimum_increment: parseFloat(formData.minIncrement),
         end_time: endTime.toISOString(),
         auto_extend_enabled: formData.autoExtend,
+        image_url: imageUrl,
       };
 
       if (isEditMode && id) {
@@ -140,7 +208,6 @@ export default function CreateAuction() {
             current_bid: parseFloat(formData.startingBid),
             created_by: user.id,
             status: 'active',
-            image_url: productCoaching
           });
 
         if (error) {
@@ -221,15 +288,40 @@ export default function CreateAuction() {
 
                 <div>
                   <Label htmlFor="image">Upload Image</Label>
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      PNG, JPG up to 10MB
-                    </p>
-                  </div>
+                  <input
+                    type="file"
+                    id="image"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="image"
+                    className="block border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer"
+                  >
+                    {imagePreview ? (
+                      <div className="space-y-2">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="max-h-48 mx-auto rounded-lg object-cover"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Click to change image
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG up to 10MB
+                        </p>
+                      </>
+                    )}
+                  </label>
                 </div>
               </div>
             </Card>
@@ -417,11 +509,11 @@ export default function CreateAuction() {
 
             {/* Submit */}
             <div className="flex gap-4">
-              <Button type="submit" className="bg-gradient-primary flex-1" disabled={isSubmitting}>
-                {isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Auction" : "Create Auction")}
+              <Button type="submit" className="bg-gradient-primary flex-1" disabled={isSubmitting || isUploadingImage}>
+                {isUploadingImage ? "Uploading image..." : isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Auction" : "Create Auction")}
               </Button>
               {!isEditMode && (
-                <Button type="button" variant="outline" disabled={isSubmitting}>
+                <Button type="button" variant="outline" disabled={isSubmitting || isUploadingImage}>
                   Save as Draft
                 </Button>
               )}
