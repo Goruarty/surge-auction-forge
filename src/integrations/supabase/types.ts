@@ -14,16 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      auctions: {
+        Row: {
+          ai_suggested_price: number | null
+          auto_extend_enabled: boolean | null
+          buy_now_price: number | null
+          created_at: string
+          created_by: string
+          current_bid: number
+          description: string | null
+          end_time: string
+          id: string
+          image_url: string | null
+          minimum_increment: number
+          reserve_price: number | null
+          start_time: string
+          starting_bid: number
+          status: Database["public"]["Enums"]["auction_status"]
+          surge_multiplier: number | null
+          title: string
+          updated_at: string
+          viewers: number
+          winning_bidder_id: string | null
+        }
+        Insert: {
+          ai_suggested_price?: number | null
+          auto_extend_enabled?: boolean | null
+          buy_now_price?: number | null
+          created_at?: string
+          created_by: string
+          current_bid?: number
+          description?: string | null
+          end_time: string
+          id?: string
+          image_url?: string | null
+          minimum_increment?: number
+          reserve_price?: number | null
+          start_time?: string
+          starting_bid: number
+          status?: Database["public"]["Enums"]["auction_status"]
+          surge_multiplier?: number | null
+          title: string
+          updated_at?: string
+          viewers?: number
+          winning_bidder_id?: string | null
+        }
+        Update: {
+          ai_suggested_price?: number | null
+          auto_extend_enabled?: boolean | null
+          buy_now_price?: number | null
+          created_at?: string
+          created_by?: string
+          current_bid?: number
+          description?: string | null
+          end_time?: string
+          id?: string
+          image_url?: string | null
+          minimum_increment?: number
+          reserve_price?: number | null
+          start_time?: string
+          starting_bid?: number
+          status?: Database["public"]["Enums"]["auction_status"]
+          surge_multiplier?: number | null
+          title?: string
+          updated_at?: string
+          viewers?: number
+          winning_bidder_id?: string | null
+        }
+        Relationships: []
+      }
+      bids: {
+        Row: {
+          amount: number
+          auction_id: string
+          bidder_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          amount: number
+          auction_id: string
+          bidder_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          auction_id?: string
+          bidder_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_auction_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      auction_status: "draft" | "scheduled" | "active" | "ended" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +277,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      auction_status: ["draft", "scheduled", "active", "ended", "cancelled"],
+    },
   },
 } as const
